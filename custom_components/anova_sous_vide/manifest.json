@@ -1,4 +1,5 @@
 {
+  "domain": "anova_sous_vide",
   "name": "Anova Sous Vide",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/anova_sous_vide",
