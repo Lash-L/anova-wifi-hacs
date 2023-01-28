@@ -1,10 +1,10 @@
 {
-  "domain": "anova_sous_vide",
   "name": "Anova Sous Vide",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/anova_sous_vide",
   "issue_tracker": "https://github.com/Lash-L/anova-wifi-hacs/issues",
   "requirements": ["anova-wifi==0.2.5"],
+  "version": "1.0.0",
   "homekit": {},
   "codeowners": ["@Lash-L"],
   "iot_class": "cloud_polling"
