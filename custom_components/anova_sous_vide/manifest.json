@@ -5,7 +5,7 @@
   "domain": "anova_sous_vide",
   "issue_tracker": "https://github.com/Lash-L/anova-wifi-hacs/issues",
   "requirements": ["anova-wifi==0.2.6"],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homekit": {},
   "codeowners": ["@Lash-L"],
   "iot_class": "cloud_polling"
