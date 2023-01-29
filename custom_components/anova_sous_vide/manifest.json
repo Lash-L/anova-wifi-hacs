@@ -4,7 +4,7 @@
   "documentation": "https://www.home-assistant.io/integrations/anova_sous_vide",
   "domain": "anova_sous_vide",
   "issue_tracker": "https://github.com/Lash-L/anova-wifi-hacs/issues",
-  "requirements": ["anova-wifi==0.2.5"],
+  "requirements": ["anova-wifi==0.2.6"],
   "version": "1.0.0",
   "homekit": {},
   "codeowners": ["@Lash-L"],
