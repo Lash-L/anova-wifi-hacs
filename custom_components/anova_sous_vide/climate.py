@@ -68,6 +68,12 @@ class AnovaSousVideClimateDevice(AnovaEntity, ClimateEntity):
             if self.coordinator.data["binary_sensors"][
                 AnovaPrecisionCookerBinarySensor.COOKING
             ]
+            or self.coordinator.data["binary_sensors"][
+                AnovaPrecisionCookerBinarySensor.PREHEATING
+            ]
+            or self.coordinator.data["binary_sensors"][
+                AnovaPrecisionCookerBinarySensor.MAINTAINING
+            ]
             else HVACMode.OFF
         )
 
@@ -113,3 +119,9 @@ class AnovaSousVideClimateDevice(AnovaEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs) -> None:
         await self.device.set_target_temperature(kwargs.get(ATTR_TEMPERATURE))
         await self.coordinator.async_request_refresh()
+
+    async def async_turn_on(self) -> None:
+        await self.device.set_mode("COOK")
+
+    async def async_turn_off(self) -> None:
+        await self.device.set_mode("IDLE")
