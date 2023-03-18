@@ -1,19 +1,24 @@
-from anova_wifi import AnovaPrecisionCookerBinarySensor
 from homeassistant import config_entries
-from homeassistant.components.anova.coordinator import AnovaCoordinator
-from homeassistant.components.anova.entity import AnovaEntity
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.components.binary_sensor import BinarySensorEntityDescription
-from homeassistant.config_entries import ConfigEntry
+from .coordinator import AnovaCoordinator
+from .entity import AnovaEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
+from anova_wifi import AnovaPrecisionCookerBinarySensor
+from .const import DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
-from .const import DOMAIN
 
 SENSOR_DESCRIPTIONS: list[BinarySensorEntityDescription] = [
     BinarySensorEntityDescription(
         AnovaPrecisionCookerBinarySensor.COOKING, name="Cooking"
+    ),
+    BinarySensorEntityDescription(
+        AnovaPrecisionCookerBinarySensor.PREHEATING, name="Preheating"
+    ),
+    BinarySensorEntityDescription(
+        AnovaPrecisionCookerBinarySensor.MAINTAINING, name="Maintaining"
     ),
     BinarySensorEntityDescription(
         AnovaPrecisionCookerBinarySensor.DEVICE_SAFE, name="Device is safe"
