@@ -1,36 +1,40 @@
 """The Anova integration."""
 from __future__ import annotations
 
-from anova_wifi import AnovaOffline
 from anova_wifi import AnovaPrecisionCooker
 from anova_wifi import AnovaPrecisionCookerSensor
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import aiohttp_client
 
-from .const import ANOVA_CLIENT
-from .const import ANOVA_FIRMWARE_VERSION
 from .const import DOMAIN
+from .coordinator import AnovaCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.CLIMATE, Platform.BINARY_SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Anova from a config entry."""
-
-    hass.data.setdefault(DOMAIN, {})
-    apc = AnovaPrecisionCooker()
-    try:
-        update = await apc.update(entry.data["device_id"])
-    except AnovaOffline as ex:
-        raise ConfigEntryNotReady("Can not connect to the sous vide") from ex
-    hass.data[DOMAIN][entry.entry_id] = {
-        ANOVA_CLIENT: AnovaPrecisionCooker(),
-        ANOVA_FIRMWARE_VERSION: update["sensors"][
-            AnovaPrecisionCookerSensor.FIRMWARE_VERSION
-        ],
+    devices = [
+        AnovaPrecisionCooker(
+            aiohttp_client.async_get_clientsession(hass),
+            device[0],
+            device[1],
+            entry.data["jwt"],
+        )
+        for device in entry.data["devices"]
+    ]
+    coordinators = {
+        device.device_key: AnovaCoordinator(hass, device) for device in devices
     }
+    for coordinator in coordinators.values():
+        await coordinator.async_config_entry_first_refresh()
+        firmware_version = coordinator.data["sensors"][
+            AnovaPrecisionCookerSensor.FIRMWARE_VERSION
+        ]
+        coordinator.async_setup(firmware_version)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinators
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
