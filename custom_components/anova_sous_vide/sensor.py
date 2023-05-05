@@ -1,7 +1,10 @@
 """Support for Anova Sensors."""
 from __future__ import annotations
 
-from anova_wifi import AnovaPrecisionCookerSensor
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from anova_wifi import APCUpdateSensor
 from homeassistant import config_entries
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor import SensorEntity
@@ -14,56 +17,83 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN
-from .coordinator import AnovaCoordinator
-from .entity import AnovaEntity
+from .entity import AnovaDescriptionEntity
+from .models import AnovaData
+
+
+@dataclass
+class AnovaSensorEntityDescriptionMixin:
+    """Describes the mixin variables for anova sensors."""
+
+    value_fn: Callable[[APCUpdateSensor], float | int | str]
+
+
+@dataclass
+class AnovaSensorEntityDescription(
+    SensorEntityDescription, AnovaSensorEntityDescriptionMixin
+):
+    """Describes a Anova sensor."""
+
 
 SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
-    SensorEntityDescription(
-        key=AnovaPrecisionCookerSensor.COOK_TIME,
+    AnovaSensorEntityDescription(
+        key="cook_time",
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         icon="mdi:clock-outline",
-        name="Cook Time",
+        translation_key="cook_time",
+        device_class=SensorDeviceClass.DURATION,
+        value_fn=lambda data: data.cook_time,
     ),
-    SensorEntityDescription(key=AnovaPrecisionCookerSensor.STATE, name="State"),
-    SensorEntityDescription(key=AnovaPrecisionCookerSensor.MODE, name="Mode"),
-    SensorEntityDescription(
-        key=AnovaPrecisionCookerSensor.TARGET_TEMPERATURE,
+    AnovaSensorEntityDescription(
+        key="state", translation_key="state", value_fn=lambda data: data.state
+    ),
+    AnovaSensorEntityDescription(
+        key="mode", translation_key="mode", value_fn=lambda data: data.mode
+    ),
+    AnovaSensorEntityDescription(
+        key="target_temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
-        name="Target Temperature",
+        translation_key="target_temperature",
+        value_fn=lambda data: data.target_temperature,
     ),
-    SensorEntityDescription(
-        key=AnovaPrecisionCookerSensor.COOK_TIME_REMAINING,
+    AnovaSensorEntityDescription(
+        key="cook_time_remaining",
         native_unit_of_measurement=UnitOfTime.SECONDS,
         icon="mdi:clock-outline",
-        name="Cook Time Remaining",
+        translation_key="cook_time_remaining",
+        device_class=SensorDeviceClass.DURATION,
+        value_fn=lambda data: data.cook_time_remaining,
     ),
-    SensorEntityDescription(
-        key=AnovaPrecisionCookerSensor.HEATER_TEMPERATURE,
+    AnovaSensorEntityDescription(
+        key="heater_temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
-        name="Heater Temperature",
+        translation_key="heater_temperature",
+        value_fn=lambda data: data.heater_temperature,
     ),
-    SensorEntityDescription(
-        key=AnovaPrecisionCookerSensor.TRIAC_TEMPERATURE,
+    AnovaSensorEntityDescription(
+        key="triac_temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
-        name="Triac Temperature",
+        translation_key="triac_temperature",
+        value_fn=lambda data: data.triac_temperature,
     ),
-    SensorEntityDescription(
-        key=AnovaPrecisionCookerSensor.WATER_TEMPERATURE,
+    AnovaSensorEntityDescription(
+        key="water_temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
-        name="Water Temperature",
+        translation_key="water_temperature",
+        value_fn=lambda data: data.water_temperature,
     ),
 ]
 
@@ -74,33 +104,20 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Anova device."""
-    coordinators = hass.data[DOMAIN][entry.entry_id]
-    for coordinator in coordinators.values():
-        await coordinator.async_config_entry_first_refresh()
-        sensors = [
-            AnovaSensor(coordinator, description) for description in SENSOR_DESCRIPTIONS
-        ]
-        async_add_entities(sensors)
+    anova_data: AnovaData = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities(
+        AnovaSensor(coordinator, description)
+        for coordinator in anova_data.coordinators
+        for description in SENSOR_DESCRIPTIONS
+    )
 
 
-class AnovaSensor(AnovaEntity, SensorEntity):
-    """A sensor using anova coordinator."""
+class AnovaSensor(AnovaDescriptionEntity, SensorEntity):
+    """A sensor using Anova coordinator."""
 
-    def __init__(
-        self, coordinator: AnovaCoordinator, description: SensorEntityDescription
-    ) -> None:
-        """Set up an Anova Sensor Entity."""
-        super().__init__(coordinator)
-        self.entity_description = description
-        self._sensor_update_key = description.key
-        self._sensor_data = None
-        self._attr_unique_id = (
-            f"{coordinator._device_unique_id}_{description.key}".lower()
-        )
-        self._attr_device_info = coordinator.device_info
-        self._attr_has_entity_name = True
+    entity_description: AnovaSensorEntityDescription
 
     @property
     def native_value(self) -> StateType:
         """Return the state."""
-        return self.coordinator.data["sensors"][self._sensor_update_key]
+        return self.entity_description.value_fn(self.coordinator.data.sensor)
