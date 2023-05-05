@@ -48,7 +48,7 @@ async def async_setup_entry(
         await coordinator.async_config_entry_first_refresh()
         sensors = [
             AnovaPrecissionCookerBinarySensor(coordinator, description)
-            for description in SENSOR_DESCRIPTIONS
+            for description in SENSOR_DESCRIPTIONS if coordinator.data["binary_sensors"][description.key] is not None
         ]
         async_add_entities(sensors)
 
